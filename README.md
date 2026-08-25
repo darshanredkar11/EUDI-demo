@@ -214,6 +214,32 @@ cd java-api && ./mvnw spring-boot:run            # :8080
 ./demo/run_demo.sh
 ```
 
+### Hosting it (a live URL, not a zip)
+
+For letting someone try this without setting up JDK 21/Rust locally:
+
+**One-click (Render):** this repo ships a [`render.yaml`](render.yaml)
+blueprint — push to GitHub, then Render → New → Blueprint → point at the
+repo. It deploys `eudi-engine` as a **private** service (no public URL —
+matches the project's own trust-boundary claim: the deterministic core
+isn't internet-reachable) and `eudi-api` as the public one. Free plan has no
+card requirement; the tradeoff is a ~30-60s cold start after ~15 min idle —
+either warm the URL a couple of minutes before a live demo, or bump `plan:
+free` → `plan: starter` (~$7/mo/service) in the blueprint for always-on.
+Set `ANTHROPIC_API_KEY` in the Render dashboard only if you want the real
+LLM proposer live; unset it and `StubLlmResolver` runs (no cost, no key on
+a public box).
+
+**Small VPS (more control, always warm):** Hetzner CX22 (~€4.2/mo) or a
+DigitalOcean $6/mo droplet, Docker installed, this repo's
+`docker-compose.yml` unmodified, Caddy in front for automatic HTTPS,
+only port 8080 exposed publicly (engine stays on the internal compose
+network — not internet-reachable, same story as the Render private service).
+
+Both paths use the exact same containers as local Docker — nothing is
+reconfigured for hosting beyond the two knobs above (dynamic `PORT` binding,
+already wired for both services).
+
 ## 6. API examples (copy-paste curl)
 
 ```bash
