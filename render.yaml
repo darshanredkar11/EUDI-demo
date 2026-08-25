@@ -16,7 +16,10 @@ services:
     plan: free
     rootDir: rust-engine
     dockerfilePath: ./Dockerfile
-    healthCheckPath: /health
+    # Render's `pserv` (private service) type doesn't support healthCheckPath
+    # at all (only `web` does — confirmed by Render's own validator). The
+    # Dockerfile now carries a HEALTHCHECK directive so Docker/Render still
+    # gets container-level health, independent of this field.
     envVars:
       - key: CONFIG_DIR
         value: /app/config

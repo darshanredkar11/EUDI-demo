@@ -7,8 +7,13 @@ COPY src ./src
 RUN mvn -q -B package -DskipTests
 
 FROM eclipse-temurin:21-jre
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=build /app/target/eudi-api-0.1.0.jar app.jar
 ENV ENGINE_URL=http://engine:8081
 EXPOSE 8080
+HEALTHCHECK --interval=5s --timeout=3s --retries=30 \
+  CMD sh -c 'curl -f http://localhost:${PORT:-8080}/ || exit 1'
 CMD ["java", "-jar", "app.jar"]

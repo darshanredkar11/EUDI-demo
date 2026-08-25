@@ -16,4 +16,6 @@ COPY --from=build /app/target/release/engine /usr/local/bin/engine
 COPY config ./config
 ENV CONFIG_DIR=/app/config PORT=8081
 EXPOSE 8081
+HEALTHCHECK --interval=5s --timeout=3s --retries=20 \
+  CMD sh -c 'curl -f http://localhost:${PORT:-8081}/health || exit 1'
 CMD ["engine"]
