@@ -16,4 +16,9 @@ ENV ENGINE_URL=http://engine:8081
 EXPOSE 8080
 HEALTHCHECK --interval=5s --timeout=3s --retries=30 \
   CMD sh -c 'curl -f http://localhost:${PORT:-8080}/ || exit 1'
-CMD ["java", "-jar", "app.jar"]
+# Cap heap as a % of the container's actual memory limit (cgroup-aware,
+# Java 10+) rather than an unbounded default — on a 512MB free-tier
+# container the JVM's default heap sizing can exceed available RAM and
+# get OOM-killed mid-run, causing exactly the "works, then 502s" pattern
+# a memory-unaware default produces.
+CMD ["java", "-XX:MaxRAMPercentage=70.0", "-XX:+UseContainerSupport", "-jar", "app.jar"]
