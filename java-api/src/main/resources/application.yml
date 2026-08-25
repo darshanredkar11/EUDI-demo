@@ -25,7 +25,12 @@ anthropic:
   api-key: ${ANTHROPIC_API_KEY:}
   model: claude-sonnet-4-6
   base-url: https://api.anthropic.com
-  timeout-ms: 3000
+  # 3s was tuned for local/same-network calls; on a hosted free-tier
+  # container the network path to the Anthropic API (DNS + TLS handshake +
+  # actual inference) can legitimately take longer, so 3s produced spurious
+  # TIER2_TIMEOUT refusals for otherwise-successful calls. Still bounded and
+  # fail-closed (G6) — just calibrated for real-world hosted latency.
+  timeout-ms: ${ANTHROPIC_TIMEOUT_MS:8000}
 
 logging:
   level:
