@@ -1,0 +1,20 @@
+# Predicate -> evidence definitions. Order is significant (privacy ranking).
+age_over_18:
+  evidence:
+    - type: AGE_ATTESTATION
+      assurance: HIGH
+    - type: GOVERNMENT_IDENTITY      # DOB-bearing credential CAN establish it,
+      assurance: HIGH                # but is dispreferred (see privacy ranking)
+  prefer: AGE_ATTESTATION            # privacy-minimal option listed first in requests
+identity_verified:
+  evidence:
+    - type: GOVERNMENT_IDENTITY
+      assurance: HIGH
+eu_resident:
+  evidence:
+    - type: RESIDENCE_CREDENTIAL
+      assurance: HIGH
+consent_valid:
+  evidence:
+    - type: CONSENT_RECORD
+      assurance: SUBSTANTIAL

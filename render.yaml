@@ -1,0 +1,41 @@
+# Render Blueprint — one-click deploy of both services from this repo.
+# https://render.com/docs/blueprint-spec
+#
+# eudi-engine is a PRIVATE service: it has no public URL, matching the
+# project's own trust-boundary claim ("the deterministic core is not
+# internet-reachable"). Only eudi-api is public.
+#
+# Free plan note: free web services spin down after ~15 min idle and take
+# ~30-60s to wake on the next request. For a live demo/interview, either
+# hit the URL a couple of minutes early to warm it up, or bump `plan: free`
+# to `plan: starter` below (~$7/mo per service) for an always-on instance.
+services:
+  - type: pserv
+    name: eudi-engine
+    runtime: docker
+    plan: free
+    rootDir: rust-engine
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: CONFIG_DIR
+        value: /app/config
+
+  - type: web
+    name: eudi-api
+    runtime: docker
+    plan: free
+    rootDir: java-api
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /
+    envVars:
+      - key: ENGINE_URL
+        fromService:
+          type: pserv
+          name: eudi-engine
+          property: hostport
+      # Optional: set this in the Render dashboard to enable the real LLM
+      # proposer (AnthropicLlmResolver). Leave unset -> StubLlmResolver,
+      # identical guardrail pipeline, no cost, no key on a public box.
+      - key: ANTHROPIC_API_KEY
+        sync: false

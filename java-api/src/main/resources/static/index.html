@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EUDI Evidence Inference — Demo Console</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="title">EUDI Evidence Inference — <span class="muted">Demo Console</span></div>
+    <div class="tagline">Question &rarr; minimal evidence &rarr; real SD-JWT verification &rarr; deterministic decision.
+      <strong>The LLM proposes; the engine disposes.</strong></div>
+  </header>
+
+  <div id="offline" class="offline hidden">
+    Engine unreachable — start the services (<code>docker compose up</code>) and reload. No output is ever faked.
+  </div>
+
+  <!-- INTRO / EXPLAINER (visible by default) -->
+  <section class="intro" id="intro">
+    <div class="intro-text">
+      <h2>What this demo is</h2>
+      <p>A relying party asks a <b>business question</b> (&ldquo;Is this user over 18?&rdquo;). The
+        system infers the <b>minimum evidence</b> that answers it, verifies a <b>real cryptographic
+        credential</b>, and returns a <b>deterministic</b> ALLOW / DENY / UNKNOWN &mdash; revealing as
+        little as possible.</p>
+      <div class="defs">
+        <p><b>Verifiable Credential (VC)</b> &mdash; a signed, tamper-evident set of claims about a subject.</p>
+        <p><b>Verifiable Presentation (VP)</b> &mdash; what the holder sends a verifier: the VC plus
+          <i>only</i> the disclosures it chooses, plus proof it controls the credential (key binding).</p>
+        <p><b>SD-JWT VC</b> &mdash; the IETF format used here: an issuer-signed JWT whose claims are
+          hidden behind salted digests, each revealable via a separate &ldquo;disclosure.&rdquo;</p>
+      </div>
+      <p class="map"><b>Protocol mapping:</b> this demo carries the same VC/VP artifacts
+        <b>OpenID4VP</b> would &mdash; issuer-signed SD-JWT, selective disclosure, holder key binding,
+        single-use nonce &mdash; over a simplified direct HTTP contract instead of the full
+        <b>OpenID4VCI</b> (issuance) / <b>OpenID4VP</b> (presentation) envelopes. The artifacts are
+        real; the transport layer is the next integration seam (see &ldquo;Honest limitations&rdquo;).</p>
+      <p class="shield"><svg class="shield-ico" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M12 2 L20 5 V11 C20 16 16.5 20 12 22 C7.5 20 4 16 4 11 V5 Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"></path></svg>
+        <b>AI attack surface:</b> the model has no tools, sees no PII, and its output is only accepted as
+        one member of a closed, re-validated set &mdash; injection and hallucination collapse to a refusal.</p>
+    </div>
+    <div class="intro-diagram" aria-label="Issuer issues a VC to the Holder/Wallet; the Holder presents a VP to the Verifier; the Verifier trusts the Issuer's published keys">
+      <svg viewBox="0 0 660 168" width="660" height="168" role="img">
+        <defs>
+          <marker id="ah" markerWidth="8" markerHeight="8" refX="6" refY="2.5" orient="auto">
+            <path d="M0,0 L6,2.5 L0,5 Z" fill="#2563eb"></path>
+          </marker>
+          <marker id="ahg" markerWidth="8" markerHeight="8" refX="6" refY="2.5" orient="auto">
+            <path d="M0,0 L6,2.5 L0,5 Z" fill="#9ca3af"></path>
+          </marker>
+        </defs>
+        <!-- trust arc (drawn first, sits behind the row) -->
+        <path d="M 560 72 C 560 138, 100 138, 100 72" fill="none" stroke="#9ca3af" stroke-width="1.75"
+              stroke-dasharray="5 4" marker-end="url(#ahg)"></path>
+        <text x="330" y="156" text-anchor="middle" font-size="11" fill="#6b7280">trusts keys (JWKS)</text>
+        <!-- issuer -> holder -->
+        <line x1="160" y1="46" x2="256" y2="46" stroke="#2563eb" stroke-width="2" marker-end="url(#ah)"></line>
+        <text x="208" y="34" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2563eb">issues VC</text>
+        <text x="208" y="66" text-anchor="middle" font-size="10.5" fill="#6b7280">(OpenID4VCI)</text>
+        <!-- holder -> verifier -->
+        <line x1="404" y1="46" x2="496" y2="46" stroke="#2563eb" stroke-width="2" marker-end="url(#ah)"></line>
+        <text x="450" y="34" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2563eb">presents VP</text>
+        <text x="450" y="66" text-anchor="middle" font-size="10.5" fill="#6b7280">(OpenID4VP)</text>
+        <!-- nodes (fill/stroke/font set as attributes too, so a CSS load failure never breaks this) -->
+        <g>
+          <rect x="20" y="20" width="140" height="52" rx="9" fill="#f8faff" stroke="#c7d2fe" stroke-width="1.5"></rect>
+          <text x="90" y="42" text-anchor="middle" font-size="14" font-weight="700" fill="#1a1d23">Issuer</text>
+          <text x="90" y="60" text-anchor="middle" font-size="10.5" fill="#6b7280">demo PID &middot; ES256</text>
+        </g>
+        <g>
+          <rect x="260" y="20" width="144" height="52" rx="9" fill="#f8faff" stroke="#c7d2fe" stroke-width="1.5"></rect>
+          <text x="332" y="42" text-anchor="middle" font-size="14" font-weight="700" fill="#1a1d23">Holder / Wallet</text>
+          <text x="332" y="60" text-anchor="middle" font-size="10.5" fill="#6b7280">stores VC &middot; discloses minimum</text>
+        </g>
+        <g>
+          <rect x="500" y="20" width="140" height="52" rx="9" fill="#f8faff" stroke="#c7d2fe" stroke-width="1.5"></rect>
+          <text x="570" y="42" text-anchor="middle" font-size="14" font-weight="700" fill="#1a1d23">Verifier</text>
+          <text x="570" y="60" text-anchor="middle" font-size="10.5" fill="#6b7280">checks &amp; decides</text>
+        </g>
+      </svg>
+    </div>
+  </section>
+
+  <!-- RESOLUTION PIPELINE — how the question becomes a canonical predicate/policy.
+       Placed right after the intro (logically first: a question must resolve
+       before wallet/engine can act on it), not buried below the 3 columns. -->
+  <section class="pipeline" id="pipeline">
+    <h2>Resolution Pipeline <span class="tag">the LLM proposes; the engine disposes</span></h2>
+    <p class="col-sub">How a business question becomes a canonical predicate/policy — two tiers, two
+      <b>independent</b> gates (Java confidence, then a separate engine membership re-check). Driven live
+      by every scenario and the free-text box below.</p>
+    <ol class="pipe" id="pipe">
+      <li class="pr idle">Run a scenario (or type a question) to trace the guardrail sequence.</li>
+    </ol>
+  </section>
+
+  <main class="stage">
+    <!-- COLUMN 1: RELYING PARTY -->
+    <section class="col" id="col-rp">
+      <h2><span class="dot"></span>Relying Party</h2>
+      <p class="col-sub">Asks a business question. Never sees credentials.</p>
+
+      <div class="scenarios">
+        <button class="scn" data-run="age">1 · Age check <span>privacy-minimised</span></button>
+        <button class="scn" data-run="bank">2 · Open a bank account <span>policy · UNKNOWN&rarr;ALLOW</span></button>
+        <button class="scn" data-run="replay">3 · Replay attack <span>single-use nonce</span></button>
+        <button class="scn" data-run="paraphrase">4 · Paraphrased question <span>AI-assisted</span></button>
+        <button class="scn" data-run="oos">5 · Out-of-scope question <span>refused, not guessed</span></button>
+        <button class="scn" data-run="tamper">6 · Tampered presentation <span>crypto catches it</span></button>
+      </div>
+
+      <div class="freetext">
+        <label for="q">Type your own question</label>
+        <div class="row">
+          <input id="q" type="text" placeholder="e.g. Is this customer of legal age?" value="Is this customer of legal age?" />
+          <button id="ask">Resolve</button>
+        </div>
+        <p class="hint">Routed through the same resolution API. It resolves to a canonical
+          predicate/policy, or is refused — it can never invent a new one.</p>
+      </div>
+
+      <div id="rp-out" class="panel"></div>
+    </section>
+
+    <!-- COLUMN 2: WALLET -->
+    <section class="col" id="col-wallet">
+      <h2><span class="dot"></span>Wallet <span class="tag">MOCK · real crypto</span></h2>
+      <p class="col-sub">Holds a real SD-JWT VC. Discloses the minimum; signs a key-binding JWT.</p>
+      <div id="wallet-out" class="panel">
+        <p class="idle">Run a scenario to issue a PID credential and see selective disclosure.</p>
+      </div>
+    </section>
+
+    <!-- COLUMN 3: ENGINE -->
+    <section class="col" id="col-engine">
+      <h2><span class="dot"></span>Engine <span class="tag">deterministic core</span></h2>
+      <p class="col-sub">Resolves, verifies real signatures, decides. No AI in this path.</p>
+      <div id="engine-out" class="panel">
+        <p class="idle">The decision, the six verification checks, and the audit appear here.</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- PROTOCOL EXCHANGE — real artifacts on the wire -->
+  <section class="protocol" id="protocol">
+    <h2>Protocol Exchange <span class="tag">real VC / VP artifacts on the wire</span></h2>
+    <p class="col-sub">The literal credential and presentation — decode any JWT segment, or paste it into
+      <a href="https://jwt.io" target="_blank" rel="noopener">jwt.io</a> to verify independently.</p>
+    <div class="proto-grid">
+      <div class="pstep" id="pstep-1">
+        <h3>1 · Issuance <span>&asymp; OpenID4VCI credential response</span></h3>
+        <div class="pbody idle">Run Scenario 1 or 6 to mint a fresh SD-JWT VC.</div>
+      </div>
+      <div class="pconn" aria-hidden="true">&rarr;</div>
+      <div class="pstep" id="pstep-2">
+        <h3>2 · Presentation <span>&asymp; OpenID4VP VP Token</span></h3>
+        <div class="pbody idle">The holder's VP &mdash; fewer disclosures than the VC.</div>
+      </div>
+      <div class="pconn" aria-hidden="true">&rarr;</div>
+      <div class="pstep" id="pstep-3">
+        <h3>3 · Verification <span>engine-side</span></h3>
+        <div class="pbody idle">Artifacts from 1&ndash;2 checked vs issuer JWKS &amp; consumed against the replay store.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="rawwrap">
+    <details>
+      <summary>Raw API exchanges (proof it's real — no canned data)</summary>
+      <div id="raw-log" class="rawlog"></div>
+    </details>
+  </section>
+
+  <footer class="footer">
+    <span>Two services · Java :8080 orchestration · Rust :8081 deterministic core</span>
+    <span class="links">
+      <a href="/swagger-ui.html" target="_blank" rel="noopener">Raw API (Swagger)</a>
+      <a href="https://github.com" onclick="return false" title="see docs/DEMO_GUIDE.md in the repo">Demo guide</a>
+    </span>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

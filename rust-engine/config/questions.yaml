@@ -1,0 +1,17 @@
+# Question registry (Tier 1 deterministic fast path).
+# Knowledge lives in the engine, not the orchestration layer.
+questions:
+  - canonical: age_over_18
+    kind: predicate
+    aliases:
+      - "is this user over 18"
+      - "is the user over 18"
+      - "is user over 18"
+      - "age over 18"
+      - "can this user buy alcohol"        # maps to same predicate, demo-friendly
+  - canonical: BANK_ACCOUNT_OPENING_V1
+    kind: policy
+    aliases:
+      - "can this user open a bank account"
+      - "can user open a bank account"
+      - "bank account eligibility"

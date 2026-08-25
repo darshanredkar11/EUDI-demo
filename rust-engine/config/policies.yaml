@@ -1,0 +1,8 @@
+# Policy -> required predicates. Order is significant (deterministic output ordering).
+BANK_ACCOUNT_OPENING_V1:
+  version: 1
+  requires:
+    - identity_verified
+    - age_over_18
+    - eu_resident
+    - consent_valid
